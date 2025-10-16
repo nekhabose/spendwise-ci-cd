@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpendWise | Categories</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>SpendWise</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="categories.html">Categories</a>
+      <a href="about.html">About</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="category-section">
+      <h2>Select Categories</h2>
+      <form id="categoryForm">
+        <label><input type="checkbox" value="groceries"> Groceries</label><br>
+        <label><input type="checkbox" value="rent"> Rent</label><br>
+        <label><input type="checkbox" value="entertainment"> Entertainment</label><br>
+        <label><input type="checkbox" value="travel"> Travel</label><br><br>
+        <button type="button" id="showSummaryBtn">Show Summary</button>
+      </form>
+    </section>
+
+    <section id="displayArea" class="display-area">
+      <p>No category selected.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 SpendWise</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
