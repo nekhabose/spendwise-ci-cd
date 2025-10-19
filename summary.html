@@ -17,15 +17,20 @@
   </header>
 
   <main>
-    <section id="summarySection">
-      <h2>Summary</h2>
-      <div id="summaryOutput"></div>
-      <button onclick="location.href='categories.html'">Back</button>
+    <section class="summary-section">
+      <h2>Spending Summary</h2>
+      <div id="summaryOutput" class="summary-output">
+        <canvas id="spendingChart" width="300" height="200"></canvas>
+        <button id="clearData">Clear Data</button>
+
+        <p>Loading your summary...</p>
+      </div>
+      <button id="backBtn">← Back to Categories</button>
     </section>
   </main>
 
   <footer>
-    <p>&copy; 2025 SpendWise</p>
+    <p>© 2025 SpendWise</p>
   </footer>
 
   <script src="script.js"></script>

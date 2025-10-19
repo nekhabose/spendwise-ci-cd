@@ -18,23 +18,43 @@
 
   <main>
     <section class="category-section">
-      <h2>Select Categories</h2>
+      <h2>Enter Your Spending by Category</h2>
       <form id="categoryForm">
-        <label><input type="checkbox" value="groceries"> Groceries</label><br>
-        <label><input type="checkbox" value="rent"> Rent</label><br>
-        <label><input type="checkbox" value="entertainment"> Entertainment</label><br>
-        <label><input type="checkbox" value="travel"> Travel</label><br><br>
-        <button type="button" id="showSummaryBtn">Show Summary</button>
-      </form>
-    </section>
+  <fieldset>
+    <legend>Spending Categories</legend>
 
-    <section id="displayArea" class="display-area">
-      <p>No category selected.</p>
+    <div class="category-item">
+      <label for="groceries">Groceries:</label>
+      <input type="number" id="groceries" name="groceries" placeholder="Enter amount $" min="0" required>
+    </div>
+
+    <div class="category-item">
+      <label for="rent">Rent:</label>
+      <input type="number" id="rent" name="rent" placeholder="Enter amount $" min="0" required>
+    </div>
+
+    <div class="category-item">
+      <label for="entertainment">Entertainment:</label>
+      <input type="number" id="entertainment" name="entertainment" placeholder="Enter amount $" min="0">
+    </div>
+
+    <div class="category-item">
+      <label for="travel">Travel:</label>
+      <input type="number" id="travel" name="travel" placeholder="Enter amount $" min="0">
+    </div>
+
+    <button type="button" id="saveBtn">Save & View Summary</button>
+  </fieldset>
+</form>
+
+      <div id="displayArea" class="display-area">
+        <p>Enter amounts and click "Save & View Summary".</p>
+      </div>
     </section>
   </main>
 
   <footer>
-    <p>&copy; 2025 SpendWise</p>
+    <p>© 2025 SpendWise</p>
   </footer>
 
   <script src="script.js"></script>
