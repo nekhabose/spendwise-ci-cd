@@ -1,45 +1,34 @@
 # SpendWise Collective
 
-SpendWise is a React + Vite single-page application that walks residents through a narrated budgeting journey:
+## Project overview
 
-1. **Landing / storytelling** – a semantic, content-rich landing page that explains the mission.
-2. **Categories workflow** – capture spending categories with contextual prompts and narration.
-3. **Summary + dashboard** – generate insights, visualize category bars, and get instant AI-style advice.
-4. **Community story** – filter and search JSON-backed initiatives for inspiration.
+SpendWise is a guided budgeting studio for households. The landing page introduces the idea in plain language, then routes visitors into categories, summaries, and storytelling sections that feel cohesive rather than disconnected screens. Users can:
 
-The UI is designed with a professional green-on-white gradient system, subtle depth, and accessible typography. Routing is handled by React Router so navigation feels like a guided studio visit.
+1. **Understand the mission** — a semantic, content-rich landing page sets the tone.
+2. **Collect spending data** — upload credit-card PDFs or key in values, then review every line item in a structured table.
+3. **Summarize & reflect** — the summary dashboard highlights totals, trends, and next steps.
+4. **Browse community wins** — JSON-backed projects show how neighbors stretch their budgets.
 
-## Getting started
+The UI uses a professional green-on-white gradient palette with generous spacing and typography that stays readable on any device. React Router keeps navigation smooth so each section feels like part of the same story instead of isolated views.
 
-```bash
-npm install
-npm run dev
-```
+## Technologies used
 
-`npm run dev` starts both Vite and the local Groq proxy defined in `scripts/dev-llm-proxy.mjs`, so PDF parsing works exactly like production without needing Netlify CLI. Vite will print a local development URL (default `http://localhost:5173`). The root `package.json` now powers the entire repo—previous duplicate HTML files were removed.
+- **Framework:** React 19 with Vite for a fast dev loop and lean production bundles.
+- **Routing:** React Router 7 for page-to-page navigation.
+- **Styling:** Hand-crafted CSS (no heavy UI kits) for consistent gradients, buttons, and cards.
+- **PDF intelligence:** A Groq-hosted Llama 3.3 model called through a Netlify/server proxy.
+- **Build & deploy:** GitHub Actions build the app and trigger Netlify deployments.
+- **State & storage:** Local component state plus `localStorage` persistence for in-progress budgets.
 
-## Available scripts
+## Link
+https://spendwize-fintech.netlify.app/
 
-| Script           | Purpose                                              |
-| ---------------- | ---------------------------------------------------- |
-| `npm run dev`    | Start the Vite dev server with hot reloading.        |
-| `npm run build`  | Create an optimized production build in `dist/`.     |
-| `npm run preview`| Preview the production build locally.                |
-| `npm run lint`   | Run ESLint using the shared config (`eslint.config`).|
+
 
 ### LLM-powered PDF parsing
 
 PDF credit card statements are now parsed by a two-step Groq Llama 3.3 pipeline: the first call extracts raw line items (date, description, amount) while the second call maps those transactions onto the SpendWise categories. Payment-only rows such as “DirectPay Full Balance” are automatically filtered so totals only include real purchases. Supply your own API key or swap the model/base URL through environment variables consumed by both the local proxy and the Netlify function:
 
-```
-cp .env.example .env
-# Then edit .env:
-GROQ_API_KEY=gsk_yourKey
-GROQ_MODEL=llama-3.3-70b-versatile
-GROQ_BASE_URL=https://api.groq.com/openai/v1
-```
-
-The Groq key now lives entirely inside the Netlify Function defined in `netlify/functions/llm-proxy.js` and the local development proxy (`scripts/dev-llm-proxy.mjs`), so it never leaks to the client bundle. Simply run `npm run dev`. That command starts both Vite and the proxy, so your `.env` variables are loaded server-side. If you skip these env variables, PDF uploads still run through the text-based fallback parser; you’ll lose the AI-powered cleanup and categorization but the UI keeps working.
 
 ## Data, storytelling, and automation
 
@@ -56,15 +45,6 @@ The Groq key now lives entirely inside the Netlify Function defined in `netlify/
 - **Credit card parsing**: drop CSV or JSON exports of your transactions—or upload a PDF, which now routes through Groq Llama 3.3 (extraction + categorization) to interpret messy tables—then the parser groups spend by keywords (groceries, rent, mobility, care, joy, other) and removes payment-only rows automatically.
 - **Dashboard & guidance**: the summary view plots each category and generates LLM-style feedback (powered by heuristics) highlighting imbalances or gaps.
 
-## Deployment (GitHub Actions → Netlify)
-
-`.github/workflows/deploy.yml` builds the React app on every push to `main` (or manual dispatch) using Node 20, runs `npm ci`, `npm run build`, and then deploys the `/dist` folder via `nwtgck/actions-netlify@v3`.
-
-To make the workflow succeed you must configure three repository secrets in GitHub:
-
-- `NETLIFY_AUTH_TOKEN`
-- `NETLIFY_SITE_ID`
-- (Optional) `GITHUB_TOKEN` is supplied automatically.
 
 ## Tech stack
 
@@ -72,10 +52,19 @@ To make the workflow succeed you must configure three repository secrets in GitH
 - Vite build tooling
 - CSS (custom design system, no external UI kit)
 - Netlify for hosting
+- Groq API (proxied) for PDF interpretation
 
-## Housekeeping
+## Lessons learned
 
-- Node modules and build artifacts are ignored via the root `.gitignore`.
-- Run `npm install` after pulling changes to update `package-lock.json` with the `react-router-dom` dependency if it has not been regenerated automatically.
+- **Grounding AI output** — raw LLM responses were noisy until we split the workflow into extraction and categorization prompts, filtered zero-value rows, and logged each proxy step. Detailed console logs sped up debugging both locally and on Netlify.
+- **Client secrets stay server-side** — building a lightweight proxy (Node locally, Netlify Functions remotely) prevented leaks that previously tripped Netlify’s secret scanner.
+- **UI polish matters** — aligning every button style, simplifying copy, and removing AI jargon made the experience feel trustworthy. Small details like rounding category amounts or disabling calendar pickers had outsized impact.
+- **Local-first persistence** — saving to `localStorage` means testers can refresh without losing LLM output, which is essential when tweaking prompts or styling.
 
-Feel free to extend the data story, add authentication, or wire the summary output into Netlify Functions for exporting PDFs. The current foundation satisfies the CI/CD + storytelling requirements in the brief.
+## Future scope
+
+- **Automated tests & audits** — add Vitest/RTL coverage plus accessibility and performance checks (axe, Lighthouse) to fully satisfy the “best practices” mandate.
+- **Data export** — generate CSV or PDF summaries so residents can share their budget snapshot.
+- **Account sync** — connect banks or budgeting apps to refresh data automatically instead of manual uploads.
+- **Collaboration** — invite partners or roommates to co-edit the same month’s plan, backed by a lightweight backend store.
+

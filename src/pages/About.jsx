@@ -10,7 +10,7 @@ export default function About() {
           numbers, and walk stakeholders through the results in a single sitting.
         </p>
         <ul className="about-list">
-          <li>Import statements or key in totals—everything lands in five clear categories.</li>
+          <li>Import statements or key in totals everything lands in five clear categories.</li>
           <li>Edit any transaction, add context, or append a manual entry as you speak.</li>
           <li>Totals update automatically so the summary view is always accurate.</li>
           <li>Notes keep the “why” behind the numbers in one place for the next review.</li>
