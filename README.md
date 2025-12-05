@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-Vite will print a local development URL (default `http://localhost:5173`). The root `package.json` now powers the entire repo—previous duplicate HTML files were removed.
+`npm run dev` starts both Vite and the local Groq proxy defined in `scripts/dev-llm-proxy.mjs`, so PDF parsing works exactly like production without needing Netlify CLI. Vite will print a local development URL (default `http://localhost:5173`). The root `package.json` now powers the entire repo—previous duplicate HTML files were removed.
 
 ## Available scripts
 
@@ -29,22 +29,23 @@ Vite will print a local development URL (default `http://localhost:5173`). The r
 
 ### LLM-powered PDF parsing
 
-PDF credit card statements are now parsed by a two-step Groq Llama 3.3 pipeline: the first call extracts raw line items (date, description, amount) while the second call maps those transactions onto the SpendWise categories. Payment-only rows such as “DirectPay Full Balance” are automatically filtered so totals only include real purchases. Supply your own API key or swap the model/base URL through Vite env variables:
+PDF credit card statements are now parsed by a two-step Groq Llama 3.3 pipeline: the first call extracts raw line items (date, description, amount) while the second call maps those transactions onto the SpendWise categories. Payment-only rows such as “DirectPay Full Balance” are automatically filtered so totals only include real purchases. Supply your own API key or swap the model/base URL through environment variables consumed by both the local proxy and the Netlify function:
 
 ```
 cp .env.example .env
 # Then edit .env:
-VITE_OPENAI_API_KEY=groq_api_key
-VITE_OPENAI_MODEL=llama-3.3-70b-versatile
-VITE_OPENAI_BASE_URL=https://api.groq.com/openai/v1
+GROQ_API_KEY=gsk_yourKey
+GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_BASE_URL=https://api.groq.com/openai/v1
 ```
 
-The API key lives in your browser session, so only use this workflow during local development or behind your own proxy. CSV/JSON uploads continue to use the built-in heuristic parser if you prefer to avoid an API call.
+The Groq key now lives entirely inside the Netlify Function defined in `netlify/functions/llm-proxy.js` and the local development proxy (`scripts/dev-llm-proxy.mjs`), so it never leaks to the client bundle. Simply run `npm run dev`. That command starts both Vite and the proxy, so your `.env` variables are loaded server-side. If you skip these env variables, PDF uploads still run through the text-based fallback parser; you’ll lose the AI-powered cleanup and categorization but the UI keeps working.
 
 ## Data, storytelling, and automation
 
 - `src/pages/Home.jsx` contains the landing narration, hero metrics, and story beats.
 - `src/pages/Categories.jsx` now supports manual entry, JSON imports, CSV parsing, and LLM-powered (Groq Llama 3.3 by default) PDF statement understanding with a full statement breakdown table so users can skip manual typing.
+- `netlify/functions/llm-proxy.js` keeps the Groq API key server-side and exposes a simple POST endpoint used by the client when parsing/categorizing PDFs.
 - `src/pages/Summary.jsx` calculates totals, renders a detailed dashboard, and surfaces LLM-style guidance (rule-based hints).
 - `src/pages/Community.jsx` reads from `src/data/communityProjects.json` and exposes filters for search, focus area, and city, keeping the storytelling theme alive.
 - `localStorage` persists the budgeting workflow so users can refresh and still see their summary.

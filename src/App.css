@@ -529,12 +529,14 @@ legend {
   width: 100%;
   border-collapse: collapse;
   min-width: 640px;
+  table-layout: auto;
 }
 
 .statement-table th,
 .statement-table td {
   padding: 16px 20px;
   text-align: left;
+  vertical-align: top;
 }
 
 .statement-table thead th {
@@ -557,6 +559,29 @@ legend {
   font-size: 0.98rem;
   color: var(--text-dark);
   font-variant-numeric: tabular-nums;
+}
+
+.statement-table th:nth-child(1),
+.statement-table td:nth-child(1) {
+  width: 110px;
+  color: var(--text-muted);
+}
+
+.statement-table th:nth-child(3),
+.statement-table td:nth-child(3) {
+  width: 140px;
+}
+
+.statement-table th:last-child,
+.statement-table td:last-child {
+  width: 150px;
+}
+
+.statement-table .description-cell {
+  min-width: 320px;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .statement-table td:nth-child(2) {

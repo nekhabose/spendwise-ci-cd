@@ -68,14 +68,6 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 let pdfLibPromise;
 let pdfWorkerPromise;
 
-const getLlmConfig = () => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY?.trim();
-  const model = import.meta.env.VITE_OPENAI_MODEL?.trim() || "llama-3.3-70b-versatile";
-  const baseUrl =
-    import.meta.env.VITE_OPENAI_BASE_URL?.trim() || "https://api.groq.com/openai/v1";
-  return { apiKey, model, baseUrl };
-};
-
 const ensurePdfjs = async () => {
   if (!pdfLibPromise) {
     pdfLibPromise = import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -258,6 +250,45 @@ const parseTransactionsFromText = (text) => {
   return parseTransactionsFromLines(trimmed);
 };
 
+const callLlmProxy = async (payload) => {
+  console.log("[SpendWise] LLM proxy request started:", payload.mode, {
+    transactionCount: payload.transactions?.length ?? 0,
+  });
+  try {
+    const response = await fetch("/.netlify/functions/llm-proxy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      const error = new Error(message || "LLM proxy error.");
+      error.status = response.status;
+      console.error("[SpendWise] LLM proxy responded with error:", error.status, message);
+      throw error;
+    }
+
+    const data = await response.json();
+    console.log("[SpendWise] LLM proxy success:", payload.mode, data.meta || {});
+    return data;
+  } catch (error) {
+    const normalized = error instanceof Error ? error : new Error(String(error));
+    if (typeof normalized.status === "undefined") {
+      normalized.status = 0;
+    }
+    if (normalized.message?.includes("Failed to fetch") || normalized.status === 404) {
+      console.warn(
+        "[SpendWise] LLM proxy unreachable. Make sure `netlify dev` is running so functions are available."
+      );
+    }
+    console.error("[SpendWise] LLM proxy request failed:", normalized);
+    throw normalized;
+  }
+};
+
 const parseUploadedTransactions = async (file) => {
   const isPdf = isPdfFile(file);
   const text = isPdf ? await extractTextFromPdf(file) : await file.text();
@@ -268,28 +299,44 @@ const parseUploadedTransactions = async (file) => {
     };
   }
 
-  const llmConfig = getLlmConfig();
-  if (!llmConfig.apiKey) {
-    throw new Error("PDF parsing now uses an LLM. Set VITE_OPENAI_API_KEY in your .env file.");
-  }
-
   let extractionError;
   let baseTransactions = [];
+  let llmExtractionAttempted = false;
+  let llmExtractionSucceeded = false;
   try {
-    baseTransactions = await parseTransactionsWithLlm(text, llmConfig);
+    llmExtractionAttempted = true;
+    baseTransactions = await parseTransactionsWithLlm(text);
+    if (baseTransactions.length) {
+      llmExtractionSucceeded = true;
+    }
   } catch (error) {
     extractionError = error instanceof Error ? error : new Error(String(error));
   }
 
   if (!baseTransactions.length) {
     baseTransactions = parseTransactionsFromText(text);
+  } else if (baseTransactions.length === 1) {
+    const fallbackCandidates = parseTransactionsFromText(text);
+    if (fallbackCandidates.length > baseTransactions.length) {
+      baseTransactions = fallbackCandidates;
+      llmExtractionSucceeded = false;
+    }
   }
+
+  baseTransactions = baseTransactions.map((transaction) => ({
+    ...transaction,
+    description: (transaction.description || transaction.merchant || "").trim(),
+  }));
 
   let categoryAssignments = {};
   let categoryError;
-  if (baseTransactions.length) {
+  let llmCategorizationSucceeded = false;
+  if (llmExtractionSucceeded && baseTransactions.length) {
     try {
-      categoryAssignments = await categorizeTransactionsWithLlm(baseTransactions, llmConfig);
+      categoryAssignments = await categorizeTransactionsWithLlm(baseTransactions);
+      if (Object.keys(categoryAssignments).length > 0) {
+        llmCategorizationSucceeded = true;
+      }
     } catch (error) {
       categoryError = error instanceof Error ? error : new Error(String(error));
     }
@@ -300,14 +347,24 @@ const parseUploadedTransactions = async (file) => {
     category: categoryAssignments[index],
   }));
 
-  if (Object.keys(categoryAssignments).length > 0) {
+  if (llmExtractionSucceeded && llmCategorizationSucceeded) {
     return { transactions: merged, source: "llm" };
+  }
+
+  if (llmExtractionAttempted && !llmExtractionSucceeded) {
+    return {
+      transactions: merged,
+      source: "pdf-no-llm",
+      warning: extractionError?.message || "LLM proxy unavailable. Using fallback parser.",
+    };
   }
 
   return {
     transactions: merged,
-    source: "fallback",
-    warning: (categoryError || extractionError)?.message,
+    source: llmExtractionSucceeded ? "fallback" : "pdf-no-llm",
+    warning:
+      (categoryError || extractionError)?.message ||
+      "LLM categorization unavailable. Using fallback parser.",
   };
 };
 
@@ -343,6 +400,7 @@ const normalizeLlmTransactions = (payload) => {
     .map((entry) => ({
       date: entry.date || entry.posted_at || entry.postedAt || "",
       description: entry.description || entry.summary || entry.merchant || entry.label || "",
+      merchant: entry.merchant || entry.vendor || entry.payee || "",
       amount: entry.amount ?? entry.value ?? entry.total ?? entry.debit ?? entry.credit,
     }))
     .filter((entry) => entry.description && entry.amount !== undefined)
@@ -374,46 +432,10 @@ const normalizeLlmCategoryAssignments = (payload) => {
   }, {});
 };
 
-const parseTransactionsWithLlm = async (statementText, config) => {
+const parseTransactionsWithLlm = async (statementText) => {
   const snippet = statementText.length > 18000 ? statementText.slice(0, 18000) : statementText;
-  const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: 0,
-      max_tokens: 900,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a financial data parser. Return strictly minified JSON with this shape: " +
-            '{"transactions":[{"date":"YYYY-MM-DD","description":"string","amount":123.45}]}',
-        },
-        {
-          role: "user",
-          content:
-            "Extract every transaction that contains a description and numeric amount from the following credit card statement text. " +
-            "Group refunds or credits as negative numbers. If a date is missing, leave it blank. " +
-            "Do NOT add categories. Statement text:\n\"\"\"\n" +
-            snippet +
-            "\n\"\"\"",
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const fallback = await response.text();
-    throw new Error(`LLM request failed (${response.status}): ${fallback.slice(0, 200)}`);
-  }
-
-  const payload = await response.json();
-  const rawContent = payload.choices?.[0]?.message?.content;
+  const payload = await callLlmProxy({ mode: "extract", statement: snippet });
+  const rawContent = payload.content;
   if (!rawContent) {
     return [];
   }
@@ -428,61 +450,19 @@ const parseTransactionsWithLlm = async (statementText, config) => {
   return normalizeLlmTransactions(parsed);
 };
 
-const summarizeCategoriesForPrompt = () =>
-  defaultCategories
-    .filter((category) => category.id !== "other")
-    .map((category) => `${category.id}: ${category.label} (${category.helper})`)
-    .join("\n");
-
-const categorizeTransactionsWithLlm = async (transactions, config) => {
+const categorizeTransactionsWithLlm = async (transactions) => {
   if (!transactions.length) return {};
-  const list = transactions
-    .map(
-      (transaction, index) =>
-        `${index}. ${transaction.description} | amount: ${Number(transaction.amount).toFixed(2)} | date: ${
-          transaction.date || "n/a"
-        }`
-    )
-    .join("\n");
-
-  const url = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: 0.1,
-      max_tokens: 600,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You map transactions to budgeting categories. Respond with strictly minified JSON shaped as " +
-            '{"assignments":[{"idx":0,"bucket":"groceries"}]}. Only use category IDs from the list provided by the user.',
-        },
-        {
-          role: "user",
-          content:
-            "Possible categories:\n" +
-            summarizeCategoriesForPrompt() +
-            "\n\nTransactions:\n" +
-            list +
-            "\n\nReturn JSON only.",
-        },
-      ],
-    }),
+  const payload = await callLlmProxy({
+    mode: "categorize",
+    transactions: transactions.map((transaction) => ({
+      description: transaction.description || transaction.merchant || "",
+      amount: Number(transaction.amount || transaction.total || transaction.value || 0),
+      date: transaction.date || "",
+    })),
+    categories: defaultCategories,
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`LLM categorization failed (${response.status}): ${body.slice(0, 200)}`);
-  }
-
-  const payload = await response.json();
-  const rawContent = payload.choices?.[0]?.message?.content;
+  const rawContent = payload.content;
   if (!rawContent) {
     return {};
   }
@@ -656,7 +636,13 @@ export default function Categories() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
+      console.log("[SpendWise] Starting bill upload parsing:", file.name);
       const result = await parseUploadedTransactions(file);
+      console.log("[SpendWise] Parser result metadata:", {
+        source: result.source,
+        warning: result.warning,
+        transactionCount: result.transactions.length,
+      });
       const transactions = result.transactions;
       if (!transactions.length) {
         throw new Error("No transactions detected");
@@ -692,6 +678,8 @@ export default function Categories() {
       );
       if (result.source === "llm") {
         setImportNote("PDF statement parsed and categorized with your LLM. Totals auto-filled below.");
+      } else if (result.source === "pdf-no-llm") {
+        setImportNote("PDF parsed with fallback rules. Add your LLM API key for richer extraction.");
       } else if (result.source === "fallback" && result.warning) {
         setImportNote(
           `Used fallback parser after LLM error (${result.warning}). Numbers are ready to review.`
@@ -779,7 +767,9 @@ export default function Categories() {
                 {parsedTransactions.map((transaction) => (
                   <tr key={transaction.id}>
                     <td data-label="Date">{transaction.date || "—"}</td>
-                    <td data-label="Description">{transaction.description}</td>
+                    <td data-label="Description" className="description-cell">
+                      {transaction.description}
+                    </td>
                     <td data-label="Bucket">{categoryLabelMap[transaction.bucket] || "Other"}</td>
                     <td data-label="Amount">
                       {currencyFormatter.format(Number(transaction.amount || 0))}
