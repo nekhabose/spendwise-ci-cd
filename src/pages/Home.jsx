@@ -2,41 +2,38 @@ import { Link } from "react-router-dom";
 
 const highlights = [
   {
-    title: "Voice + visuals",
-    copy: "A single hero block blends narration, CTA, and data pulses.",
+    title: "Fast onboarding",
+    copy: "Drop a card statement or start typing—either way the five categories fill in seconds.",
   },
   {
-    title: "Snap routing",
-    copy: "React Router keeps the story flowing without page reloads.",
+    title: "Confident edits",
+    copy: "Every line item can be adjusted or added manually without leaving the page.",
   },
   {
-    title: "Actionable data",
-    copy: "Inputs sync to localStorage and feed filtering views instantly.",
+    title: "Clear summary",
+    copy: "Totals update instantly so you can brief stakeholders with the exact numbers they expect.",
   },
 ];
 
-const storyBeats = [
+const workflow = [
   {
-    label: "Beat 01",
-    title: "Listen",
-    detail: "Arrive, feel the vibe, absorb the mission in one glance.",
+    title: "Import or log",
+    detail: "Upload a statement or key in amounts. Transactions land in a clean statement table.",
   },
   {
-    label: "Beat 02",
-    title: "Log",
-    detail: "Drop in the categories that define your month.",
+    title: "Refine & explain",
+    detail: "Edit amounts, select the right category, add notes, and create manual entries.",
   },
   {
-    label: "Beat 03",
-    title: "Share",
-    detail: "Compare with the community feed and publish insights.",
+    title: "Present",
+    detail: "Open the summary view to brief leaders or capture next steps.",
   },
 ];
 
 const heroMetrics = [
-  { label: "Households", value: "1,240+" },
-  { label: "Playbooks", value: "87" },
-  { label: "Cities", value: "12" },
+  { label: "Teams onboarded", value: "120+" },
+  { label: "Minutes saved", value: "15+ / run" },
+  { label: "Accuracy", value: "99%" },
 ];
 
 export default function Home() {
@@ -44,15 +41,15 @@ export default function Home() {
     <div className="landing-page">
       <section className="page-card landing-hero">
         <div>
-          <p className="eyebrow">SpendWise Pulse</p>
-          <h2>Budget clarity in seconds.</h2>
-          <p>Pick a path and start logging.</p>
+          <p className="eyebrow">SpendWise FinOps</p>
+          <h2>Turn raw statements into ready-to-share numbers.</h2>
+          <p>Import expenses, make quick edits, and lock in totals before anyone asks for an update.</p>
           <div className="cta-row">
             <Link className="primary-btn" to="/categories">
-              Enter your spending
+              Start logging
             </Link>
-            <Link className="ghost-btn" to="/community">
-              Explore live stories
+            <Link className="ghost-btn" to="/summary">
+              Open summary
             </Link>
           </div>
         </div>
@@ -66,7 +63,7 @@ export default function Home() {
         </ul>
       </section>
 
-      <section className="page-card highlight-grid">
+      <section className="page-card highlight-grid refined-grid">
         {highlights.map((item) => (
           <article key={item.title}>
             <h3>{item.title}</h3>
@@ -75,43 +72,28 @@ export default function Home() {
         ))}
       </section>
 
-      <section className="page-card narrative-panel">
-        <header>
-          <p className="eyebrow">Storyline</p>
-          <h2>Short beats, clear purpose</h2>
-          <p>Every section mirrors a moment in the budgeting journey.</p>
-        </header>
-        <div className="storyline">
-          {storyBeats.map((beat) => (
-            <article key={beat.label} className="story-card">
-              <small>{beat.label}</small>
-              <h3>{beat.title}</h3>
-              <p>{beat.detail}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="page-card flow-panel">
+      <section className="page-card professional-panel">
         <div>
-          <h2>Navigation that just flows</h2>
-          <p>Cards, CTAs, and routing stay consistent across the app.</p>
+          <p className="eyebrow">Workflow</p>
+          <h2>From import to insight in three simple steps.</h2>
+          <p>Everything is laid out so busy teams can review spend without digging through tabs.</p>
         </div>
-        <div>
-          <ul className="flow-steps">
-            <li>
-              <strong>1. Listen on the landing page.</strong> Absorb the story,
-              the mission, and the CTA.
-            </li>
-            <li>
-              <strong>2. Log what matters.</strong> Categories capture nuanced
-              spending in accessible cards.
-            </li>
-            <li>
-              <strong>3. Summarize & compare.</strong> The summary view reveals
-              insights instantly and links to community data for inspiration.
-            </li>
-          </ul>
+        <div className="workflow">
+          <div className="workflow-steps">
+            {workflow.map((step) => (
+              <article key={step.title}>
+                <h3>{step.title}</h3>
+                <p>{step.detail}</p>
+              </article>
+            ))}
+          </div>
+          <div className="insights-callout">
+            <h3>Deliverables</h3>
+            <p>Editable statement, synced categories, ready-to-present summary.</p>
+            <Link className="primary-btn" to="/categories">
+              Try the flow
+            </Link>
+          </div>
         </div>
       </section>
     </div>

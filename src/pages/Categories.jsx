@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const defaultCategories = [
@@ -489,6 +489,18 @@ export default function Categories() {
   const [importNote, setImportNote] = useState("");
   const [parsedTransactions, setParsedTransactions] = useState([]);
 
+  useEffect(() => {
+    if (!parsedTransactions.length) return;
+    const totals = {};
+    parsedTransactions.forEach((tx) => {
+      const amount = Math.abs(Number(tx.amount || 0));
+      if (Number.isNaN(amount) || amount === 0) return;
+      const bucket = tx.bucket || "other";
+      totals[bucket] = (totals[bucket] || 0) + amount;
+    });
+    applyImportedTotals(totals);
+  }, [parsedTransactions]);
+
   const totals = useMemo(() => {
     const entries = Object.entries(formState).filter(([key]) => key !== "notes");
     const total = entries.reduce((sum, [, value]) => sum + Number(value || 0), 0);
@@ -612,6 +624,38 @@ export default function Categories() {
     return "other";
   };
 
+const addManualTransaction = () => {
+  const manual = {
+    id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    date: new Date().toISOString().slice(0, 10),
+    description: "",
+    amount: "0.00",
+    bucket: "other",
+  };
+  setParsedTransactions((prev) => [...prev, manual]);
+};
+
+  const handleTransactionEdit = (transactionId, field, value) => {
+    setParsedTransactions((prev) =>
+      prev.map((tx) => {
+        if (tx.id !== transactionId) return tx;
+        if (field === "amount") {
+          return { ...tx, amount: value };
+        }
+        if (field === "date") {
+          return { ...tx, date: value };
+        }
+        if (field === "description") {
+          return { ...tx, description: value };
+        }
+        if (field === "bucket") {
+          return { ...tx, bucket: value };
+        }
+        return tx;
+      })
+    );
+  };
+
   const paymentKeywords = [
     "full balance",
     "directpay",
@@ -655,27 +699,24 @@ export default function Categories() {
         }))
         .filter((tx) => !isPaymentTransaction(tx.description));
 
-      const totals = {};
-      decorated.forEach((tx) => {
-        const amount = Math.abs(Number(tx.amount || tx.total || tx.value));
-        if (Number.isNaN(amount) || amount === 0) return;
-        totals[tx.bucket] = (totals[tx.bucket] || 0) + amount;
-      });
+      const normalized = decorated
+        .map((tx, index) => {
+          const rawAmount = Number(tx.amount || tx.total || tx.value);
+          return {
+            id: `${tx.description || "transaction"}-${index}`,
+            date: tx.date || "",
+            description: tx.description || tx.merchant || "Unlabeled transaction",
+            amount: Number.isNaN(rawAmount) ? "" : rawAmount.toFixed(2),
+            bucket: tx.bucket,
+          };
+        })
+        .filter((tx) => Number(tx.amount || 0) > 0);
 
-      if (Object.keys(totals).length === 0) {
+      if (!normalized.length) {
         throw new Error("No billable purchases detected after filtering payments.");
       }
 
-      applyImportedTotals(totals);
-      setParsedTransactions(
-        decorated.map((tx, index) => ({
-          id: `${tx.description || "transaction"}-${index}`,
-          date: tx.date || "",
-          description: tx.description || tx.merchant || "Unlabeled transaction",
-          amount: Number(tx.amount || tx.total || tx.value),
-          bucket: tx.bucket,
-        }))
-      );
+      setParsedTransactions(normalized);
       if (result.source === "llm") {
         setImportNote("PDF statement parsed and categorized with your LLM. Totals auto-filled below.");
       } else if (result.source === "pdf-no-llm") {
@@ -730,11 +771,16 @@ export default function Categories() {
           <label className="import-card">
             <span>Upload credit card bill</span>
             <small>CSV, JSON, or PDF statements with descriptions + amounts supported.</small>
-            <input
-              type="file"
-              accept=".csv,.json,.txt,.pdf,application/pdf"
-              onChange={handleBillUpload}
-            />
+            <button type="button" className="ghost-btn file-btn">
+              <label>
+                Choose file
+                <input
+                  type="file"
+                  accept=".csv,.json,.txt,.pdf,application/pdf"
+                  onChange={handleBillUpload}
+                />
+              </label>
+            </button>
           </label>
           {importNote && <p className="import-note">{importNote}</p>}
         </div>
@@ -746,6 +792,11 @@ export default function Categories() {
             <p className="eyebrow">Statement breakdown</p>
             <h2>Every line item from your bill.</h2>
             <p>Anything we cannot classify automatically falls under “Other” for you to review.</p>
+            <div className="statement-actions">
+              <button type="button" className="ghost-btn" onClick={addManualTransaction}>
+                + Add manual entry
+              </button>
+            </div>
           </div>
           <div className="statement-table" aria-live="polite">
             <table>
@@ -761,13 +812,49 @@ export default function Categories() {
               <tbody>
                 {parsedTransactions.map((transaction) => (
                   <tr key={transaction.id}>
-                    <td data-label="Date">{transaction.date || "—"}</td>
-                    <td data-label="Description" className="description-cell">
-                      {transaction.description}
+                    <td data-label="Date" className="date-input">
+                      <input
+                        type="text"
+                        value={transaction.date}
+                        placeholder="YYYY-MM-DD"
+                        onChange={(event) =>
+                          handleTransactionEdit(transaction.id, "date", event.target.value)
+                        }
+                      />
                     </td>
-                    <td data-label="Bucket">{categoryLabelMap[transaction.bucket] || "Other"}</td>
-                    <td data-label="Amount">
-                      {currencyFormatter.format(Number(transaction.amount || 0))}
+                    <td data-label="Description" className="description-cell">
+                      <input
+                        type="text"
+                        value={transaction.description}
+                        onChange={(event) =>
+                          handleTransactionEdit(transaction.id, "description", event.target.value)
+                        }
+                        placeholder="Description"
+                      />
+                    </td>
+                    <td data-label="Bucket">
+                      <select
+                        value={transaction.bucket}
+                        onChange={(event) =>
+                          handleTransactionEdit(transaction.id, "bucket", event.target.value)
+                        }
+                      >
+                        {defaultCategories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td data-label="Amount" className="amount-input">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={transaction.amount}
+                        onChange={(event) =>
+                          handleTransactionEdit(transaction.id, "amount", event.target.value)
+                        }
+                      />
                     </td>
                   </tr>
                 ))}
@@ -819,14 +906,6 @@ export default function Categories() {
             <button type="submit" className="primary-btn">
               Save spending data
             </button>
-            <button
-              type="button"
-              className="ghost-btn"
-              onClick={() => navigate("/summary")}
-              disabled={!totals.hasValues}
-            >
-              Review summary
-            </button>
           </div>
         </form>
 
@@ -837,9 +916,9 @@ export default function Categories() {
               <button
                 type="button"
                 onClick={() => navigate("/summary")}
-                className="link-btn"
+                className="primary-btn open-summary-btn"
               >
-                Open summary →
+                Open summary
               </button>
             )}
           </div>

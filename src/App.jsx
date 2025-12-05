@@ -4,7 +4,6 @@ import Home from "./pages/Home.jsx";
 import Categories from "./pages/Categories.jsx";
 import Summary from "./pages/Summary.jsx";
 import About from "./pages/About.jsx";
-import Community from "./pages/Community.jsx";
 
 export default function App() {
   return (
@@ -14,7 +13,6 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="categories" element={<Categories />} />
           <Route path="summary" element={<Summary />} />
-          <Route path="community" element={<Community />} />
           <Route path="about" element={<About />} />
         </Route>
       </Routes>
