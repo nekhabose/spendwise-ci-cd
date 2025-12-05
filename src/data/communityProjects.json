@@ -1,0 +1,68 @@
+[
+  {
+    "id": "cp-101",
+    "title": "Fresh Blocks Market",
+    "city": "Detroit",
+    "focusArea": "Food Access",
+    "budget": 32000,
+    "impactScore": 88,
+    "status": "active",
+    "tags": ["nutrition", "youth", "pop-up"],
+    "narrative": "Neighbors converted an abandoned lot into a seasonal night market that keeps 14 urban farms profitable while youth narrators share budgeting lessons with every visitor."
+  },
+  {
+    "id": "cp-108",
+    "title": "Harbor Apprenticeship Fund",
+    "city": "Boston",
+    "focusArea": "Workforce",
+    "budget": 54000,
+    "impactScore": 82,
+    "status": "active",
+    "tags": ["maritime", "upskilling"],
+    "narrative": "Former dock workers and students pair up on paid apprenticeships. The fund matches stipends for every hour residents volunteer to mentor new talent."
+  },
+  {
+    "id": "cp-117",
+    "title": "Southside Solar Studio",
+    "city": "Chicago",
+    "focusArea": "Climate",
+    "budget": 47000,
+    "impactScore": 91,
+    "status": "active",
+    "tags": ["energy", "training", "design"],
+    "narrative": "Makers, electricians, and storytellers co-designed a solar studio that powers a free podcast booth where families narrate monthly money decisions."
+  },
+  {
+    "id": "cp-126",
+    "title": "Riverwalk Micro-Grants",
+    "city": "Portland",
+    "focusArea": "Public Space",
+    "budget": 15000,
+    "impactScore": 75,
+    "status": "draft",
+    "tags": ["placemaking", "education"],
+    "narrative": "A participatory budget board funds micro-ideas—shade, sound trails, low-cost seating—that make the river trail safe for late-shift workers heading home."
+  },
+  {
+    "id": "cp-133",
+    "title": "Care Ledger Pilot",
+    "city": "Atlanta",
+    "focusArea": "Care Economy",
+    "budget": 26500,
+    "impactScore": 84,
+    "status": "active",
+    "tags": ["caregivers", "ledgers"],
+    "narrative": "Community doulas use an open ledger to log visits and micro-grants. Residents can filter the ledger to unlock stipends for transportation or groceries."
+  },
+  {
+    "id": "cp-140",
+    "title": "Neighborhood Resonance Lab",
+    "city": "Los Angeles",
+    "focusArea": "Arts & Culture",
+    "budget": 39000,
+    "impactScore": 79,
+    "status": "paused",
+    "tags": ["sound-walks", "archives"],
+    "narrative": "Musicians and data journalists record oral histories, turning them into sonic maps that reveal how budgets change across corridors."
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityProject",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier used in summaries and dashboards."
+    },
+    "title": {
+      "type": "string",
+      "description": "Name of the neighborhood program."
+    },
+    "city": {
+      "type": "string",
+      "description": "City where the program is hosted."
+    },
+    "focusArea": {
+      "type": "string",
+      "description": "Thematic cluster (food, climate, care, etc.)."
+    },
+    "budget": {
+      "type": "number",
+      "description": "Allocated or raised budget in USD."
+    },
+    "impactScore": {
+      "type": "number",
+      "description": "Community-voted score normalized to 100."
+    },
+    "status": {
+      "type": "string",
+      "description": "Workflow status (active, draft, paused)."
+    },
+    "tags": {
+      "type": "array",
+      "description": "Free-form labels captured during workshops."
+    },
+    "narrative": {
+      "type": "string",
+      "description": "Story snippet used on the landing page and summaries."
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "city",
+    "focusArea",
+    "budget",
+    "impactScore",
+    "status",
+    "tags",
+    "narrative"
+  ]
+}
