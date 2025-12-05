@@ -1,6 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const generateFeedback = (entries, notes) => {
+  if (!entries.length) return [];
+  const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const sorted = [...entries].sort((a, b) => (b.amount || 0) - (a.amount || 0));
+  const guidance = [];
+
+  const top = sorted[0];
+  if (top && (top.amount || 0) > total * 0.45) {
+    guidance.push(
+      `Focus on ${top.label}: it absorbs nearly half of your budget. Set a soft guardrail before the next cycle.`
+    );
+  }
+
+  const zeroed = entries.filter((entry) => Number(entry.amount) === 0);
+  if (zeroed.length) {
+    guidance.push(
+      `No activity in ${zeroed.map((entry) => entry.label).join(", ")}. Prune unused buckets to keep the story tight.`
+    );
+  }
+
+  const joy = entries.find((entry) => entry.id === "joy");
+  if (joy && joy.amount < total * 0.05) {
+    guidance.push("Your Joy fund is under 5%. Add a little breathing room to avoid burnout.");
+  }
+
+  if (notes && notes.length > 12) {
+    guidance.push("Notes captured — convert them into calendar nudges or reminders.");
+  }
+
+  if (!guidance.length) {
+    guidance.push("Distribution looks balanced. Celebrate the win and schedule the next check-in.");
+  }
+
+  return guidance;
+};
+
 export default function Summary() {
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
@@ -47,6 +83,20 @@ export default function Summary() {
       average,
     };
   }, [records]);
+
+  const dashboardMetrics = useMemo(() => {
+    if (!records.length) return [];
+    const max = Math.max(...records.map((entry) => Number(entry.amount || 0)), 1);
+    return records.map((entry) => {
+      const amount = Number(entry.amount || 0);
+      return {
+        ...entry,
+        percent: Math.round((amount / max) * 100),
+      };
+    });
+  }, [records]);
+
+  const guidance = useMemo(() => generateFeedback(records, notes), [records, notes]);
 
   const handleClear = () => {
     localStorage.removeItem("spendingData");
@@ -130,6 +180,39 @@ export default function Summary() {
             </button>
           </div>
         </aside>
+      </section>
+
+      <section className="page-card dashboard-panel">
+        <header>
+          <p className="eyebrow">Dashboard</p>
+          <h2>Category breakdown</h2>
+          <p>Bars scale to your highest spend. Hover for the exact amount.</p>
+        </header>
+        <div className="dashboard-grid">
+          {dashboardMetrics.map((entry) => (
+            <article key={entry.id}>
+              <div className="dashboard-label">
+                <strong>{entry.label}</strong>
+                <span>${Number(entry.amount).toFixed(2)}</span>
+              </div>
+              <div className="progress-track" aria-hidden="true">
+                <span style={{ width: `${entry.percent}%` }} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="page-card ai-panel">
+        <header>
+          <p className="eyebrow">LLM-style guidance</p>
+          <h2>Micro advice from your numbers</h2>
+        </header>
+        <ul>
+          {guidance.map((tip, index) => (
+            <li key={index}>{tip}</li>
+          ))}
+        </ul>
       </section>
     </div>
   );
