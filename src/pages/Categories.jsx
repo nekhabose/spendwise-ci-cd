@@ -536,7 +536,7 @@ export default function Categories() {
       const next = { ...prev };
       Object.entries(bucketTotals).forEach(([id, amount]) => {
         if (typeof amount === "number" && !Number.isNaN(amount)) {
-          next[id] = amount.toString();
+          next[id] = amount.toFixed(2);
         }
       });
       return next;
@@ -727,11 +727,6 @@ export default function Categories() {
           <p>Drop CSV/JSON exports from your budgeting app or credit card.</p>
         </div>
         <div className="import-actions">
-          <label className="import-card">
-            <span>Upload spending JSON</span>
-            <small>Keys like "groceries": 220 will auto-fill the form.</small>
-            <input type="file" accept="application/json" onChange={handleJsonUpload} />
-          </label>
           <label className="import-card">
             <span>Upload credit card bill</span>
             <small>CSV, JSON, or PDF statements with descriptions + amounts supported.</small>
